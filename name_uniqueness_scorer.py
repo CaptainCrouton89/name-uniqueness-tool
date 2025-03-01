@@ -108,9 +108,7 @@ class NameUniquenessScorer:
             print("Loading census last name data...")
             with open('name_data/last_names.csv', 'r') as file:
                 next(file) # Skip header line
-                i = 0
                 for line in file:
-                    i += 1
                     line = line.strip()
                     if line:
                         parts = line.split(',')
@@ -119,9 +117,6 @@ class NameUniquenessScorer:
                             count = int(float(count))
                             self.last_name_counts[name.lower()] += count
                             self.total_last_names += count
-                            if i < 10:
-                                print(name.lower(), count)
-            print(self.last_name_counts["smith"])
             print(f"Loaded last name data: {len(self.last_name_counts)} unique surnames, {self.total_last_names} total")
         
         except Exception as e:
@@ -401,10 +396,10 @@ if __name__ == "__main__":
         ("Emma", "Brown"),       # Very common
         ("Michael", "Jones"),    # Very common
         ("Elizabeth", "Garcia"), # Common
-        ("Bertha", "Nguyen"),   # Uncommon first, common last
-        ("Luna", "Zhang"),      # Modern unique first, common last
-        ("Atlas", "Blackwood"), # Unique modern first, uncommon last
-        ("River", "Phoenix"),   # Nature name + rare last name
+        ("Bertha", "Nguyen"),    # Uncommon first, common last
+        ("Luna", "Zhang"),       # Modern unique first, common last
+        ("Atlas", "Blackwood"),  # Unique modern first, uncommon last
+        ("River", "Phoenix"),    # Nature name + rare last name
         ("John", "Smith"),       # Very common
         ("Mary", "Johnson"),     # Very common
         ("Zephyr", "Moonbeam"),  # Unusual
@@ -417,7 +412,7 @@ if __name__ == "__main__":
     ]
 
     test_names = [
-        ("Douglas", "Douglas")
+        ("tschepo", "Kgaje")
     ]
     
     print("\n=== Name Uniqueness Comparisons ===")

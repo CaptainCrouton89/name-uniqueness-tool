@@ -7,38 +7,29 @@ import time
 
 from name_uniqueness_scorer import NameUniquenessScorer
 
+with open("words.txt", "r") as file:
+    words = file.read().splitlines()
 
 def is_valid_name(name):
     """Check if a name appears to be a valid human name."""
-    # Check for numbers
-    if re.search(r'\d', name):
+
+    # Check for invalid special characters
+    pattern = re.compile(r'[@#$%^&*+=<>{}\d[]|/]')
+    if pattern.findall(name):
         return False
     
-    # Check for unusual characters that aren't typically in names
-    if re.search(r'[@#$%^&*+=<>{}[\]|/]', name):
+    if name.count('.') > 0:
         return False
     
-    # Check for usernames, handles, or other non-name patterns
-    if re.search(r'^\w+\d+$', name) or name.count('_') > 0:
+    if name.count('-') > 1:
         return False
     
-    suffixes = ['mr.', 'mr', 'sr.', 'sr', 'jr.', 'jr', 'dr.', 'dr', 'ms.', 'ms', 'mrs.', 'mrs', 'inc', 'llc', 'ltd', 'co', 'corp', 'gaming', 'official', 'real', 'the', 'channel', 'tv', 'yt', 'youtube', 'video', 'videos', 'gram', 'ig', 'insta', 'fb', 'tweet', 'tiktok', 'live', 'gaming', 'plays', 'stream']
-    name_lower = name.lower()
-    name_parts = name_lower.split()
-    for suffix in suffixes:
-        if suffix in name_parts:
-            return False
-        
-    # Check that name has both first and last name
     name_parts = name.split()
-    if len(name_parts) < 2:
-        return False
         
-    # Check for single letter names
-    if len(name_parts[0]) == 1 or len(name_parts[-1]) == 1:
+    if len(name_parts[0]) == 1:
         return False
-    
-    # All-caps names will be converted to title case later, not rejected
+    if len(name_parts[-1]) == 1:
+        return False
     
     return True
 
@@ -48,28 +39,41 @@ def simplify_name(author_name):
     Simplify a name to just first and last name with proper capitalization.
     Returns a tuple of (first_name, last_name, is_valid)
     """
+    
+    suffixes = ['mr', 'mr.', 'sr', 'sr.', 'jr', 'jr.', 'dr', 'dr.', 'ms', 'ms.', 'mrs', 'mrs.', 'inc', 'llc', 'ltd', 'corp', 'gaming', 'official', 'real', 'the', 'channel', 'tv', 'yt', 'youtube', 'video', 'videos', 'gram', 'insta', 'fb', 'tweet', 'tiktok', 'live', 'gaming', 'plays', 'stream']
+
+    # Remove suffixes from anywhere in the name
+    for suffix in suffixes:
+        # Remove suffix if it appears at start with space after or at end with space before
+        pattern = f"^{suffix}\\s|\\s{suffix}$"
+        author_name = re.sub(pattern, "", author_name, flags=re.IGNORECASE)
+
+    author_parts = author_name.split()
+
+    # Check if first part is all uppercase
+    if author_parts[0].isupper():
+        return (author_parts[0], "", False)
+    
+    author_name = author_name.lower()
+    author_parts = author_name.split()
+
+    if len(author_parts) < 2:
+        return (author_parts[0], "", False)
+
+    if len(author_parts) >= 2:
+        author_name = f"{author_parts[0]} {author_parts[-1]}"
+        author_parts = author_name.split()
+
     # Check if the name is valid
     if not is_valid_name(author_name):
-        # Try to extract a valid name if possible
-        parts = re.split(r'[^a-zA-Z\s\'-]', author_name)
-        clean_parts = [p.strip() for p in parts if p.strip()]
-        if not clean_parts:
-            return ("", "", False)
-        author_name = " ".join(clean_parts)
-        if not is_valid_name(author_name):
-            return ("", "", False)
-        
-    
-    
-    # Convert all-caps names to title case
-    author_name = author_name.lower()
+        return (author_parts[0], "", False)   
     
     # Split the name into parts
     parts = author_name.split()
     
     # Handle single-word names
     if len(parts) == 1:
-        return (parts[0].lower(), "", True)
+        return (parts[0].lower(), "", False)
     
     # For multi-word names, take first and last parts
     first_name = parts[0].lower()
@@ -78,6 +82,12 @@ def simplify_name(author_name):
     # Check if the name exists in the dataset
     if not scorer.name_exists(first_name, "first") and not scorer.name_exists(last_name, "last"):
         return ("", "", False)
+    
+    if (first_name in words and not scorer.name_exists(first_name, "first")):
+        return (author_parts[0], "", False)
+    
+    if (last_name in words and not scorer.name_exists(last_name, "last")):
+        return (author_parts[0], "", False)
     
     # Handle special cases like "John D." where the last part is just an initial
     if len(parts) > 1 and (len(parts[-1]) == 1 or (len(parts[-1]) == 2 and parts[-1].endswith('.'))):
@@ -189,14 +199,14 @@ def score_review_authors(batch_size=100):
     # Save final results to CSV
     with open("simplified_name_scores.csv", "w", newline="", encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(["First Name", "Last Name", "Uniqueness Score"])
+        writer.writerow(["Original Name", "First Name", "Last Name", "Uniqueness Score"])
         for author in scored_authors:
             writer.writerow(author)
     
     # Print top 10 most unique valid names
     print("\nTop 10 Most Unique Valid Names:")
     valid_names = [a for a in scored_authors if a[3] != -1]
-    for i, (original, first, last, score, rating, title, date, review_id, app_id, body) in enumerate(valid_names[:10], 1):
+    for i, (original, first, last, score) in enumerate(valid_names[:10], 1):
         full_name = f"{first} {last}".strip()
         print(f"{i}. {full_name}: {score:.1f} (Original: {original})")
     
