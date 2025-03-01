@@ -20,19 +20,30 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from name_uniqueness_scorer import NameUniquenessScorer
 
-# Initialize the scorer with the name data
-name_data_dir = str(Path(__file__).resolve().parent.parent / "name_data")
-last_name_source = str(Path(__file__).resolve().parent.parent / "name_data" / "last_names.csv")
 
-try:
-    scorer = NameUniquenessScorer(
-        first_name_dir=name_data_dir,
-        last_name_source=last_name_source
-    )
-    logger.info("Name Uniqueness Scorer initialized successfully")
-except Exception as e:
-    logger.error(f"Failed to initialize Name Uniqueness Scorer: {str(e)}")
-    raise
+# Initialize the scorer with the name data
+def get_scorer():
+    name_data_dir = str(Path(__file__).resolve().parent / "name_data")
+    last_name_source = str(Path(__file__).resolve().parent / "name_data" / "last_names.csv")
+
+    print(f"name_data_dir: {name_data_dir}")
+    print(f"last_name_source: {last_name_source}")
+
+    try:
+        scorer = NameUniquenessScorer(
+            first_name_dir=name_data_dir,
+            last_name_source=last_name_source
+        )
+        # Print first 5 keys as a sample
+        print("Sample last names:", list(scorer.last_name_counts.keys())[:5])
+        logger.info("Name Uniqueness Scorer initialized successfully")
+        return scorer
+    except Exception as e:
+        logger.error(f"Failed to initialize Name Uniqueness Scorer: {str(e)}")
+        raise    
+
+scorer = get_scorer()
+print(scorer.calculate_full_name_uniqueness("John", "Smith", print_components=True))
 
 def cors_headers():
     """Return CORS headers for cross-origin requests"""
@@ -107,6 +118,7 @@ class handler(BaseHTTPRequestHandler):
         """Handle name scoring requests"""
         first_name = data.get('firstName', '').strip()
         last_name = data.get('lastName', '').strip()
+
         
         if not first_name and not last_name:
             logger.warning("Score name request with no names provided")
@@ -116,7 +128,8 @@ class handler(BaseHTTPRequestHandler):
             if first_name and last_name:
                 # Score full name
                 logger.info(f"Scoring full name: {first_name} {last_name}")
-                score = scorer.calculate_full_name_uniqueness(first_name, last_name)
+                print(scorer.first_name_counts)
+                score = scorer.calculate_full_name_uniqueness(first_name, last_name, print_components=True)
                 return {
                     "score": round(score),
                     "type": "full",
@@ -156,7 +169,7 @@ class handler(BaseHTTPRequestHandler):
         
         logger.info(f"Comparing {len(names_list)} names")
         results = []
-        
+
         try:
             for i, name_pair in enumerate(names_list):
                 if len(name_pair) >= 2:

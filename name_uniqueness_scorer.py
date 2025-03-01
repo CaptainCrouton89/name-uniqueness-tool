@@ -96,7 +96,7 @@ class NameUniquenessScorer:
                     for line in file:
                         name, sex, count = line.strip().split(',')
                         count = int(count)
-                        self.first_name_counts[name.title()] += count
+                        self.first_name_counts[name.lower()] += count
                         self.total_first_names += count
                         self.letter_counts.update(name.lower())
         
@@ -108,15 +108,20 @@ class NameUniquenessScorer:
             print("Loading census last name data...")
             with open('name_data/last_names.csv', 'r') as file:
                 next(file) # Skip header line
+                i = 0
                 for line in file:
+                    i += 1
                     line = line.strip()
                     if line:
                         parts = line.split(',')
                         if len(parts) >= 3:
                             name,rank,count,prop100k,cum_prop100k,pctwhite,pctblack,pctapi,pctaian,pct2prace,pcthispanic = parts
                             count = int(float(count))
-                            self.last_name_counts[name.title()] += count
+                            self.last_name_counts[name.lower()] += count
                             self.total_last_names += count
+                            if i < 10:
+                                print(name.lower(), count)
+            print(self.last_name_counts["smith"])
             print(f"Loaded last name data: {len(self.last_name_counts)} unique surnames, {self.total_last_names} total")
         
         except Exception as e:
@@ -133,10 +138,11 @@ class NameUniquenessScorer:
         try:
             with open(source_path, 'r') as file:
                 reader = csv.reader(file)
+                next(reader)  # Skip header row
                 for row in reader:
                     if len(row) >= 2:
-                        name, count = row[0], int(row[1])
-                        self.last_name_counts[name] += count
+                        name, count = row[0], int(row[2])
+                        self.last_name_counts[name.lower()] += count
                         self.total_last_names += count
         
         except Exception as e:
@@ -147,10 +153,10 @@ class NameUniquenessScorer:
         if not name or not isinstance(name, str):
             return 0
             
-        name = name.strip().title()  # Normalize name format
+        name = name.strip().lower()  # Normalize name format
         
         # Component 1: Frequency-based score
-        frequency = name_counts.get(name.title(), 0) / total_names if total_names > 0 else 0
+        frequency = name_counts.get(name.lower(), 0) / total_names if total_names > 0 else 0
         if print_components:
             print(f"Frequency for {name}: {frequency}")
         if frequency == 0:
@@ -210,14 +216,14 @@ class NameUniquenessScorer:
     
     def calculate_first_name_uniqueness(self, name, print_components=False):
         """Calculate uniqueness score for a first name"""
-        scores = self._calculate_name_uniqueness(name.title(), self.first_name_counts, self.total_first_names)
+        scores = self._calculate_name_uniqueness(name.lower(), self.first_name_counts, self.total_first_names)
         if print_components:
             self.print_component_scores(name, scores)
         return scores["total_score"] if isinstance(scores, dict) else scores
     
     def calculate_last_name_uniqueness(self, name, print_components=False):
         """Calculate uniqueness score for a last name"""
-        scores = self._calculate_name_uniqueness(name.title(), self.last_name_counts, self.total_last_names)
+        scores = self._calculate_name_uniqueness(name.lower(), self.last_name_counts, self.total_last_names)
         if print_components:
             self.print_component_scores(name, scores)
         return scores["total_score"] if isinstance(scores, dict) else scores

@@ -62,18 +62,18 @@ def simplify_name(author_name):
     
     
     # Convert all-caps names to title case
-    author_name = author_name.title()
+    author_name = author_name.lower()
     
     # Split the name into parts
     parts = author_name.split()
     
     # Handle single-word names
     if len(parts) == 1:
-        return (parts[0].title(), "", True)
+        return (parts[0].lower(), "", True)
     
     # For multi-word names, take first and last parts
-    first_name = parts[0].title()
-    last_name = parts[-1].title()
+    first_name = parts[0].lower()
+    last_name = parts[-1].lower()
 
     # Check if the name exists in the dataset
     if not scorer.name_exists(first_name, "first") and not scorer.name_exists(last_name, "last"):
@@ -83,7 +83,7 @@ def simplify_name(author_name):
     if len(parts) > 1 and (len(parts[-1]) == 1 or (len(parts[-1]) == 2 and parts[-1].endswith('.'))):
         # If the last part is just an initial, use the part before it as the last name
         if len(parts) > 2:
-            last_name = parts[-2].title()
+            last_name = parts[-2].lower()
         else:
             last_name = ""
     
@@ -154,7 +154,7 @@ def score_review_authors(batch_size=100):
             rating, title, date, review_id, app_id, body = review_details
             
             # Append all data to the batch scores
-            batch_scores.append((author_name, first_name, last_name, score, rating, title, date, review_id, app_id, body))
+            batch_scores.append((author_name, first_name, last_name, score))
         
         scored_authors.extend(batch_scores)
         
@@ -177,8 +177,7 @@ def score_review_authors(batch_size=100):
             # Save intermediate results to CSV
             with open(f"simplified_name_scores_partial_{i + len(batch)}.csv", "w", newline="", encoding="utf-8") as csvfile:
                 writer = csv.writer(csvfile)
-                writer.writerow(["Original Name", "First Name", "Last Name", "Uniqueness Score", 
-                                "Rating", "Title", "Date", "Review ID", "App ID", "Body"])
+                writer.writerow(["First Name", "Last Name", "Uniqueness Score"])
                 for author in temp_sorted:
                     writer.writerow(author)
             
@@ -190,8 +189,7 @@ def score_review_authors(batch_size=100):
     # Save final results to CSV
     with open("simplified_name_scores.csv", "w", newline="", encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(["Original Name", "First Name", "Last Name", "Uniqueness Score", 
-                        "Rating", "Title", "Date", "Review ID", "App ID", "Body"])
+        writer.writerow(["First Name", "Last Name", "Uniqueness Score"])
         for author in scored_authors:
             writer.writerow(author)
     
