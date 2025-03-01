@@ -95,16 +95,32 @@ def score_review_authors(batch_size=100):
     
     # Initialize the name scorer
     print("Initializing name scorer...")
+    global scorer
     scorer = NameUniquenessScorer("./name_data")
     
     # Connect to the SQLite database
     conn = sqlite3.connect("reviews.db")
     cursor = conn.cursor()
     
-    # Get all unique author names from the reviews table
-    cursor.execute("SELECT DISTINCT author_name FROM reviews WHERE author_name IS NOT NULL AND author_name != ''")
-    author_names = [row[0] for row in cursor.fetchall()]
+    # Get all unique author names from the reviews table along with their review details
+    cursor.execute("""
+        SELECT DISTINCT author_name, 
+               rating, title, date, review_id, app_id, body
+        FROM reviews 
+        WHERE author_name IS NOT NULL AND author_name != ''
+    """)
+    author_data = cursor.fetchall()
     
+    # Create a dictionary to store review details for each author
+    author_reviews = {}
+    for row in author_data:
+        author_name = row[0]
+        review_details = row[1:]  # rating, title, date, review_id, app_id, body
+        
+        if author_name not in author_reviews:
+            author_reviews[author_name] = review_details
+    
+    author_names = list(author_reviews.keys())
     total_names = len(author_names)
     print(f"Found {total_names} unique author names to score")
     
@@ -133,7 +149,12 @@ def score_review_authors(batch_size=100):
                 score = -1
                 invalid_count += 1
             
-            batch_scores.append((author_name, first_name, last_name, score))
+            # Get the review details for this author
+            review_details = author_reviews[author_name]
+            rating, title, date, review_id, app_id, body = review_details
+            
+            # Append all data to the batch scores
+            batch_scores.append((author_name, first_name, last_name, score, rating, title, date, review_id, app_id, body))
         
         scored_authors.extend(batch_scores)
         
@@ -156,7 +177,8 @@ def score_review_authors(batch_size=100):
             # Save intermediate results to CSV
             with open(f"simplified_name_scores_partial_{i + len(batch)}.csv", "w", newline="", encoding="utf-8") as csvfile:
                 writer = csv.writer(csvfile)
-                writer.writerow(["Original Name", "First Name", "Last Name", "Uniqueness Score"])
+                writer.writerow(["Original Name", "First Name", "Last Name", "Uniqueness Score", 
+                                "Rating", "Title", "Date", "Review ID", "App ID", "Body"])
                 for author in temp_sorted:
                     writer.writerow(author)
             
@@ -168,14 +190,15 @@ def score_review_authors(batch_size=100):
     # Save final results to CSV
     with open("simplified_name_scores.csv", "w", newline="", encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(["Original Name", "First Name", "Last Name", "Uniqueness Score"])
+        writer.writerow(["Original Name", "First Name", "Last Name", "Uniqueness Score", 
+                        "Rating", "Title", "Date", "Review ID", "App ID", "Body"])
         for author in scored_authors:
             writer.writerow(author)
     
     # Print top 10 most unique valid names
     print("\nTop 10 Most Unique Valid Names:")
     valid_names = [a for a in scored_authors if a[3] != -1]
-    for i, (original, first, last, score) in enumerate(valid_names[:10], 1):
+    for i, (original, first, last, score, rating, title, date, review_id, app_id, body) in enumerate(valid_names[:10], 1):
         full_name = f"{first} {last}".strip()
         print(f"{i}. {full_name}: {score:.1f} (Original: {original})")
     
