@@ -1,2 +1,4 @@
 # No external dependencies required for core functionality
 # The tool uses only Python standard library modules 
+aiohttp>=3.11.0
+requests>=2.32.0 

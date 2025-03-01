@@ -336,6 +336,25 @@ class NameUniquenessScorer:
         
         # Sort by score descending
         return sorted(results, key=lambda x: x[1], reverse=True)
+    
+    def name_exists(self, name, name_type="first"):
+        """
+        Check if a name exists in our dataset.
+        
+        Args:
+            name (str): The name to check
+            name_type (str): Either "first" or "last" to specify which dataset to check
+            
+        Returns:
+            bool: True if the name exists in our data, False otherwise
+        """
+        
+        if name_type.lower() == "first":
+            return name in self.first_name_counts
+        elif name_type.lower() == "last":
+            return name in self.last_name_counts
+        else:
+            raise ValueError("name_type must be either 'first' or 'last'")
 
 
 # Example usage
@@ -386,9 +405,13 @@ if __name__ == "__main__":
         ("Kaivon", "Larsen"),
         ("Abrielle", "Wolfeschlegelsteinhausenbergerdorff")  # Very rare combo
     ]
+
+    test_names = [
+        ("Douglas", "Douglas")
+    ]
     
     print("\n=== Name Uniqueness Comparisons ===")
     for first, last in test_names:
-        score = scorer.calculate_full_name_uniqueness(first, last, print_components=False)
+        score = scorer.calculate_full_name_uniqueness(first, last, print_components=True)
         print(f"{first} {last}: {score}")
         print()
