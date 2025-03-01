@@ -1,7 +1,5 @@
-import logging
 import os
 import sys
-import traceback
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -13,35 +11,12 @@ from NameUniquenessScorer import NameUniquenessScorer
 app = Flask(__name__)
 CORS(app)
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('api_errors.log')
-    ]
-)
-logger = logging.getLogger(__name__)
-
 # Initialize the scorer with the correct path to name_data
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 name_data_path = os.path.join(parent_dir, "name_data")
 scorer = NameUniquenessScorer(first_name_dir=name_data_path)
 
-# Handle OPTIONS requests for CORS preflight
-@app.route('/api/score-name', methods=['OPTIONS'])
-@app.route('/api/compare-names', methods=['OPTIONS'])
-@app.route('/api/health', methods=['OPTIONS'])
-def handle_options():
-    response = jsonify({})
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    return response
-
-@app.route('/api/score-name', methods=['POST'])
-def score_name():
+def score_name_handler(request):
     data = request.json
     first_name = data.get('firstName', '')
     last_name = data.get('lastName', '')
@@ -76,15 +51,9 @@ def score_name():
         
         return jsonify(result)
     except Exception as e:
-        error_details = {
-            "error": str(e),
-            "traceback": traceback.format_exc()
-        }
-        logger.error(f"Error in score_name: {error_details['error']}\n{error_details['traceback']}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/compare-names', methods=['POST'])
-def compare_names():
+def compare_names_handler(request):
     data = request.json
     names = data.get('names', [])
     
@@ -116,9 +85,6 @@ def compare_names():
                 # Assume it's a string
                 processed_names.append(name_entry)
         
-        # Log the processed names for debugging
-        logger.info(f"Processing names: {processed_names}")
-        
         results = scorer.compare_names(processed_names)
         return jsonify({
             "results": [
@@ -126,29 +92,23 @@ def compare_names():
             ]
         })
     except Exception as e:
-        error_details = {
-            "error": str(e),
-            "traceback": traceback.format_exc()
-        }
-        logger.error(f"Error in compare_names: {error_details['error']}\n{error_details['traceback']}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/health', methods=['GET'])
-def health_check():
+def health_check_handler(request):
     return jsonify({"status": "ok"})
 
-# For local development
-if __name__ == '__main__':
-    app.run(debug=True, port=5001, host='0.0.0.0')
-
-# For Vercel serverless functions
+# Vercel serverless function handler
 def handler(request):
-    with app.test_client() as test_client:
-        response = test_client.open(
-            path=request.path,
-            method=request.method,
-            headers={key: value for key, value in request.headers.items()},
-            data=request.get_data(),
-            environ_base={'REMOTE_ADDR': request.headers.get('x-forwarded-for', '')}
-        )
-        return response 
+    path = request.path
+    
+    if path == "/api/score-name":
+        if request.method == "POST":
+            return score_name_handler(request)
+    elif path == "/api/compare-names":
+        if request.method == "POST":
+            return compare_names_handler(request)
+    elif path == "/api/health":
+        if request.method == "GET":
+            return health_check_handler(request)
+    
+    return jsonify({"error": "Not found"}), 404 

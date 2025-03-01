@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/serverless.py",
+      "src": "api/*.py",
       "use": "@vercel/python"
     },
     {
@@ -16,7 +16,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "api/serverless.py",
+      "dest": "api/index.py",
       "headers": {
         "Access-Control-Allow-Credentials": "true",
         "Access-Control-Allow-Origin": "*",

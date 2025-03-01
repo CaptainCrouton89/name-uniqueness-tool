@@ -12,6 +12,11 @@ import {
 import React, { useState } from "react";
 import { Bar, Doughnut } from "react-chartjs-2";
 
+// Create custom axios instance with base URL
+const api = axios.create({
+  baseURL: "http://localhost:5001/api",
+});
+
 // Register ChartJS components
 ChartJS.register(
   ArcElement,
@@ -65,7 +70,7 @@ const App: React.FC = () => {
     setError(null);
 
     try {
-      const response = await axios.post("/api/score-name", {
+      const response = await api.post("/score-name", {
         firstName,
         lastName,
       });
@@ -110,12 +115,9 @@ const App: React.FC = () => {
     setError(null);
 
     try {
-      const response = await axios.post<ComparisonResponse>(
-        "/api/compare-names",
-        {
-          names: namesList,
-        }
-      );
+      const response = await api.post<ComparisonResponse>("/compare-names", {
+        names: namesList,
+      });
 
       setComparisonResults(response.data.results);
     } catch (err) {
