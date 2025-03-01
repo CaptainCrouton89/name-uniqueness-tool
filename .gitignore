@@ -65,7 +65,6 @@ name_data/
 # Node.js / React
 */node_modules/
 node_modules/
-*/build/
 */coverage/
 */.pnp
 */.pnp.js
