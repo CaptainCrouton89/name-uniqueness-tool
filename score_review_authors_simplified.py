@@ -5,7 +5,7 @@ import re
 import sqlite3
 import time
 
-from NameUniquenessScorer import NameUniquenessScorer
+from name_uniqueness_scorer import NameUniquenessScorer
 
 
 def is_valid_name(name):

@@ -80,10 +80,14 @@ class NameUniquenessScorer:
     def load_ssa_data(self, directory_path):
         """Load SSA baby name data from yobYYYY.txt files"""
         pattern = re.compile(r'yob(\d{4})\.txt')
+        # Only process files from 1950 onwards
+        min_year = 1950
         year_data = {}
         
         for filename in os.listdir(directory_path):
             match = pattern.match(filename)
+            if match and int(match.group(1)) < min_year:
+                continue
             if match:
                 year = match.group(1)
                 year_data[year] = []
@@ -102,7 +106,7 @@ class NameUniquenessScorer:
         """Load US Census Bureau last name data"""
         try:
             print("Loading census last name data...")
-            with open('Names_2010Census.csv', 'r') as file:
+            with open('name_data/last_names.csv', 'r') as file:
                 next(file) # Skip header line
                 for line in file:
                     line = line.strip()
